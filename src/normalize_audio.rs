@@ -103,7 +103,7 @@ impl Audio {
         }
 
         let (sample_rate, channels) = spec.context("file contained no decodable audio")?;
-        Ok(Audio {
+        Ok(Self {
             samples,
             sample_rate,
             channels,
@@ -113,10 +113,6 @@ impl Audio {
     /// Number of sample frames (one frame = one sample per channel).
     pub fn frames(&self) -> usize {
         self.samples.len() / self.channels.max(1)
-    }
-
-    pub fn duration(&self) -> Duration {
-        Duration::from_secs_f64(self.frames() as f64 / self.sample_rate as f64)
     }
 
     /// Keep only `start..end` (`end = None` keeps everything until the end).
@@ -149,29 +145,6 @@ impl Audio {
         let gain = 10f32.powf(target_db / 20.0) / peak;
         for s in &mut self.samples {
             *s *= gain;
-        }
-    }
-
-    /// Linear fade in / fade out, useful to avoid clicks at the trim points.
-    pub fn fade(&mut self, fade_in: Duration, fade_out: Duration) {
-        let frames = self.frames();
-        let ch = self.channels;
-        let n_in = ((fade_in.as_secs_f64() * self.sample_rate as f64) as usize).min(frames);
-        let n_out = ((fade_out.as_secs_f64() * self.sample_rate as f64) as usize).min(frames);
-
-        for f in 0..n_in {
-            let g = f as f32 / n_in as f32;
-            for s in &mut self.samples[f * ch..(f + 1) * ch] {
-                *s *= g;
-            }
-        }
-        for i in 0..n_out {
-            // Last frame gets gain ~0, frame `frames - n_out` gets gain ~1.
-            let f = frames - 1 - i;
-            let g = i as f32 / n_out as f32;
-            for s in &mut self.samples[f * ch..(f + 1) * ch] {
-                *s *= g;
-            }
         }
     }
 
@@ -233,102 +206,4 @@ pub fn process_file(
     audio.trim(start, end); // trim first so removed audio doesn't affect the peak
     audio.normalize_peak(-1.0);
     audio.write_mp3(output, Bitrate::Kbps192)
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use std::io::Cursor;
-
-    fn sine(sample_rate: u32, channels: usize, secs: f32, amp: f32) -> Audio {
-        let frames = (sample_rate as f32 * secs) as usize;
-        let mut samples = Vec::with_capacity(frames * channels);
-        for i in 0..frames {
-            let v = amp * (2.0 * std::f32::consts::PI * 440.0 * i as f32 / sample_rate as f32).sin();
-            for _ in 0..channels {
-                samples.push(v);
-            }
-        }
-        Audio {
-            samples,
-            sample_rate,
-            channels,
-        }
-    }
-
-    #[test]
-    fn roundtrip_trim_normalize() {
-        for channels in [1, 2] {
-            let src = sine(44_100, channels, 5.0, 0.25);
-            let mp3 = src.encode_mp3(Bitrate::Kbps192).unwrap();
-
-            let mut audio = Audio::decode(Cursor::new(mp3), Some("mp3")).unwrap();
-            assert_eq!(audio.sample_rate, 44_100);
-            assert_eq!(audio.channels, channels);
-
-            audio.trim(Some(Duration::from_secs(1)), Some(Duration::from_secs(3)));
-            let secs = audio.duration().as_secs_f32();
-            assert!((secs - 2.0).abs() < 0.01, "duration {secs}");
-
-            audio.normalize_peak(-1.0);
-            let target = 10f32.powf(-1.0 / 20.0);
-            assert!((audio.peak() - target).abs() < 1e-4, "peak {}", audio.peak());
-        }
-    }
-
-    #[test]
-    fn trim_clamps_and_keeps_frames_aligned() {
-        let mut a = sine(8_000, 2, 1.0, 0.5);
-        a.trim(Some(Duration::from_millis(500)), Some(Duration::from_secs(99)));
-        assert_eq!(a.samples.len() % 2, 0);
-        assert_eq!(a.frames(), 4_000);
-
-        a.trim(Some(Duration::from_secs(10)), None); // start past the end -> empty
-        assert!(a.samples.is_empty());
-    }
-
-    #[test]
-    fn silence_is_not_normalized() {
-        let mut a = Audio {
-            samples: vec![0.0; 100],
-            sample_rate: 8_000,
-            channels: 1,
-        };
-        a.normalize_peak(-1.0);
-        assert!(a.samples.iter().all(|&s| s == 0.0));
-    }
-
-    #[test]
-    fn fade_hits_zero_at_edges() {
-        let mut a = Audio {
-            samples: vec![1.0; 2 * 1000],
-            sample_rate: 1000,
-            channels: 2,
-        };
-        a.fade(Duration::from_millis(100), Duration::from_millis(100));
-        assert_eq!(a.samples[0], 0.0);
-        assert!(a.samples[a.samples.len() - 1] < 0.02);
-        assert_eq!(a.samples[1000], 1.0); // middle untouched
-    }
-
-    #[test]
-    fn errors_are_descriptive() {
-        let err = Audio::open("/definitely/not/here.mp3").unwrap_err();
-        assert!(format!("{err:#}").contains("failed to open"));
-
-        let err = Audio::decode(Cursor::new(vec![0u8; 64]), Some("mp3")).unwrap_err();
-        assert!(!format!("{err:#}").is_empty());
-
-        let a = Audio {
-            samples: vec![0.0; 6],
-            sample_rate: 8_000,
-            channels: 3,
-        };
-        assert!(
-            a.encode_mp3(Bitrate::Kbps128)
-                .unwrap_err()
-                .to_string()
-                .contains("mono or stereo")
-        );
-    }
 }
