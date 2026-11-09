@@ -9,6 +9,7 @@ use anyhow::Context;
 use id3::TagLike;
 use std::{
     fs::File,
+    io::Seek,
     path::{Path, PathBuf},
 };
 
@@ -95,6 +96,7 @@ fn dostuff(song: &SongDecl, source_dir: &Path, target_path: &Path, root_dir: &Pa
 
     // This copy is probably needed if you don't want a NamedTempFile (which would be less stable)
     let mut target_file = File::create_new(target_path).context("Could not open target file")?;
+    tempfile.rewind().context("Could not rewind tempfile cursor")?;
     _ = std::io::copy(&mut tempfile, &mut target_file).context("Could not copy tempfile to target file")?;
     Ok(())
 }
