@@ -38,7 +38,7 @@ enum Command {
     /// Download missing audio files
     Download,
 
-    /// Clear everything from the cache
+    /// Clear cached downloads
     Clear,
 
     /// Add a new song or other resource
@@ -55,8 +55,8 @@ struct AddArgs {
 enum AddResource {
     Song,
     Artist,
-    // Character,
-    // Game,
+    Char,
+    Game,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -153,6 +153,15 @@ fn cachedir() -> anyhow::Result<PathBuf> {
     let home = std::env::home_dir().context("failed to get home dir")?;
     let dir = home.join(".cache");
     anyhow::ensure!(dir.is_dir(), "missing ~/.cache dir");
+    let dir = dir.join("biomusic");
+    io::ensure_dir(&dir)?;
+    Ok(dir)
+}
+
+fn songdir() -> anyhow::Result<PathBuf> {
+    let home = std::env::home_dir().context("failed to get home dir")?;
+    let dir = home.join(".local/share");
+    anyhow::ensure!(dir.is_dir(), "missing ~/.local/share dir");
     let dir = dir.join("biomusic");
     io::ensure_dir(&dir)?;
     Ok(dir)

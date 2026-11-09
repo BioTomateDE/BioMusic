@@ -2,18 +2,21 @@ use crate::{
     BioMusic, cachedir,
     decl::song::{SongDecl, SongSource},
     io::ensure_dir,
+    songdir,
     youtube::id::YoutubeID,
 };
 use anyhow::Context;
 use id3::TagLike;
-use std::path::{Path, PathBuf};
+use std::{
+    fs::File,
+    path::{Path, PathBuf},
+};
 
 pub fn download_missing(music: &BioMusic) -> anyhow::Result<()> {
-    let dir = cachedir()?;
-    let songs_dir = dir.join("songs");
+    let songs_dir = songdir()?;
     ensure_dir(&songs_dir)?;
 
-    let yt_cache_dir = dir.join("youtube");
+    let yt_cache_dir = cachedir()?.join("youtube");
     ensure_dir(&yt_cache_dir)?;
 
     let mut videos: Vec<(&SongDecl, PathBuf)> = Vec::with_capacity(music.songs.len());
@@ -65,6 +68,7 @@ fn video_cache_path(cache_dir: &Path, id: YoutubeID) -> PathBuf {
 
 fn dostuff(song: &SongDecl, source_dir: &Path, target_path: &Path, root_dir: &Path) -> anyhow::Result<()> {
     let id = useless(song);
+    println!("Creating audio file for song {:?} from YouTube ID {id}", song.title);
     let artist = song.artist.resolve(root_dir)?;
     let image_path: PathBuf = source_dir.join(id.as_str()).with_extension("png");
     let image_data: Vec<u8> = std::fs::read(image_path).context("Could not read thumbnail image")?;
@@ -79,16 +83,18 @@ fn dostuff(song: &SongDecl, source_dir: &Path, target_path: &Path, root_dir: &Pa
         data: image_data,
     });
 
-    // No way to write id3 data to new/copied mp3 file it seems.
-    // To make sure the id3 data is always written to the target file,
-    // write it to the source cache file first.
-    let source_path = video_cache_path(source_dir, id);
-    tag.write_to_path(&source_path, id3::Version::Id3v24)
-        .context("Could not write id3 data")?;
+    let dir = target_path.parent().unwrap();
+    let mut tempfile = tempfile::tempfile_in(dir).context("Could not create tempfile")?;
 
-    crate::normalize_audio::process_file(source_path, target_path, song.trim.start, song.trim.end)
+    let source_path = video_cache_path(source_dir, id);
+    crate::normalize_audio::process_file(source_path, &mut tempfile, song.trim.start, song.trim.end)
         .context("Could not trim and normalize audio")?;
 
-    // std::fs::rename(source_path, target_path).context("Could not move temp download file")?;
+    tag.write_to_file(&mut tempfile, id3::Version::Id3v24)
+        .context("Could not write id3 data")?;
+
+    // This copy is probably needed if you don't want a NamedTempFile (which would be less stable)
+    let mut target_file = File::create_new(target_path).context("Could not open target file")?;
+    _ = std::io::copy(&mut tempfile, &mut target_file).context("Could not copy tempfile to target file")?;
     Ok(())
 }

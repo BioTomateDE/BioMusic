@@ -3,11 +3,14 @@ use crate::{
     decl::{
         Resource,
         artist::{Artist, ArtistDecl},
+        character::CharacterDecl,
+        game::GameDecl,
         song::{SongDecl, SongSource},
         validate_resource,
     },
     ident::{Ident, IdentParseError},
     io::write_toml_resource,
+    list::List,
     youtube::{domain::is_youtube_domain, id::YoutubeID},
 };
 use anyhow::Context;
@@ -18,7 +21,51 @@ pub fn add_resource(args: AddArgs, music: &mut BioMusic) -> anyhow::Result<()> {
     match args.resource {
         AddResource::Song => add_song(music),
         AddResource::Artist => add_artist(music),
+        AddResource::Char => add_char(music),
+        AddResource::Game => add_game(music),
     }
+}
+
+fn add_game(music: &mut BioMusic) -> anyhow::Result<()> {
+    let ident: Ident = clinput("Game identifier", |s| {
+        let ident = Ident::try_from(s)?;
+        if music.games.contains_key(&ident) {
+            anyhow::bail!("Game with identifer `{ident}` already exists");
+        }
+        Ok(ident)
+    });
+    let name: String = clinput("Game name", Ok);
+
+    let game = GameDecl { name };
+
+    // sync to disk
+    write_toml_resource(&game, &ident, &music.root_dir_path).context("Could not save created game")?;
+
+    // sync to struct cuz yeah
+    _ = music.games.insert(ident, game);
+
+    Ok(())
+}
+
+fn add_char(music: &mut BioMusic) -> anyhow::Result<()> {
+    let ident: Ident = clinput("Character identifier", |s| {
+        let ident = Ident::try_from(s)?;
+        if music.characters.contains_key(&ident) {
+            anyhow::bail!("Character with identifer `{ident}` already exists");
+        }
+        Ok(ident)
+    });
+    let name: String = clinput("Character name", Ok);
+
+    let character = CharacterDecl { name, aka: List::EMPTY };
+
+    // sync to disk
+    write_toml_resource(&character, &ident, &music.root_dir_path).context("Could not save created character")?;
+
+    // sync to struct cuz yeah
+    _ = music.characters.insert(ident, character);
+
+    Ok(())
 }
 
 fn add_artist(music: &mut BioMusic) -> anyhow::Result<()> {

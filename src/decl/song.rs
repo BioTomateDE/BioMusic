@@ -49,7 +49,7 @@ pub struct SongDecl {
     #[serde(skip_serializing_if = "List::is_empty")]
     pub aka: List<String>,
 
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "AudioTrim::is_none")]
     pub trim: AudioTrim,
 }
 
@@ -103,8 +103,12 @@ pub struct AudioTrim {
 
 impl AudioTrim {
     pub const NONE: Self = Self::new(None, None);
+
     pub const fn new(start: Option<Duration>, end: Option<Duration>) -> Self {
         Self { start, end }
+    }
+    pub fn is_none(&self) -> bool {
+        *self == Self::NONE
     }
 }
 

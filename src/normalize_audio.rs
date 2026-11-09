@@ -50,9 +50,9 @@ impl Audio {
     /// Decode an audio file from disk.
     pub fn open(path: impl AsRef<Path>) -> Result<Self> {
         let path = path.as_ref();
-        let file = File::open(path).with_context(|| format!("failed to open {}", path.display()))?;
+        let file = File::open(path).with_context(|| format!("Could not open audio file `{}`", path.display()))?;
         let ext = path.extension().and_then(|e| e.to_str());
-        Self::decode(file, ext).with_context(|| format!("failed to decode {}", path.display()))
+        Self::decode(file, ext).with_context(|| format!("Could not decode audio at `{}`", path.display()))
     }
 
     /// Decode from any seekable source (a `File`, a `Cursor<Vec<u8>>`, ...).
@@ -189,7 +189,7 @@ impl Audio {
             .set_sample_rate(self.sample_rate)
             .map_err(lame("invalid sample rate"))?;
         builder.set_brate(bitrate).map_err(lame("invalid bitrate"))?;
-        builder.set_quality(Quality::Best).map_err(lame("invalid quality"))?;
+        builder.set_quality(Quality::Good).map_err(lame("invalid quality"))?;
         let mut encoder = builder.build().map_err(lame("failed to build encoder"))?;
 
         let pcm: Vec<i16> = self
@@ -214,10 +214,10 @@ impl Audio {
         Ok(out)
     }
 
-    pub fn write_mp3(&self, path: impl AsRef<Path>, bitrate: Bitrate) -> Result<()> {
-        let path = path.as_ref();
-        let bytes = self.encode_mp3(bitrate)?;
-        std::fs::write(path, bytes).with_context(|| format!("failed to write {}", path.display()))
+    pub fn write_mp3(&self, mut file: impl id3::StorageFile, bitrate: Bitrate) -> Result<()> {
+        let bytes = self.encode_mp3(bitrate).context("Failed to encode mp3")?;
+        _ = file.write(&bytes).context("Failed to write encoded MP3 bytes")?;
+        Ok(())
     }
 }
 
@@ -225,14 +225,14 @@ impl Audio {
 /// `target_db` dBFS and write `output` as 192 kbps MP3.
 pub fn process_file(
     input: impl AsRef<Path>,
-    output: impl AsRef<Path>,
+    output: impl id3::StorageFile,
     start: Option<Duration>,
     end: Option<Duration>,
 ) -> Result<()> {
     let mut audio = Audio::open(input)?;
     audio.trim(start, end); // trim first so removed audio doesn't affect the peak
     audio.normalize_peak(-1.0);
-    audio.write_mp3(output, Bitrate::Kbps256)
+    audio.write_mp3(output, Bitrate::Kbps192)
 }
 
 #[cfg(test)]
