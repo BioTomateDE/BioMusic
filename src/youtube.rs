@@ -14,7 +14,7 @@ pub fn probe() -> anyhow::Result<()> {
     Ok(())
 }
 
-pub fn download(dir: &Path, videos: impl Iterator<Item = YoutubeID>) -> anyhow::Result<()> {
+pub fn download(dir: &Path, videos: &[YoutubeID]) -> anyhow::Result<()> {
     anyhow::ensure!(dir.is_dir(), "internal error: download dir doesn't exist");
     let home_dir = std::env::home_dir().context("Could not get home dir")?;
 

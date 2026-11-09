@@ -7,6 +7,7 @@ use crate::{
 };
 use anyhow::Context;
 use id3::TagLike;
+use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use std::{
     fs::File,
     io::Seek,
@@ -20,7 +21,8 @@ pub fn download_missing(music: &BioMusic) -> anyhow::Result<()> {
     let yt_cache_dir = cachedir()?.join("youtube");
     ensure_dir(&yt_cache_dir)?;
 
-    let mut videos: Vec<(&SongDecl, PathBuf)> = Vec::with_capacity(music.songs.len());
+    let mut videos: Vec<YoutubeID> = Vec::with_capacity(music.songs.len());
+    let mut songs: Vec<(&SongDecl, PathBuf)> = Vec::with_capacity(music.songs.len());
 
     for (name, song) in &music.songs {
         let path = songs_dir.join(name.string()).with_extension("mp3");
@@ -31,28 +33,26 @@ pub fn download_missing(music: &BioMusic) -> anyhow::Result<()> {
         let youtube_id = useless(song);
 
         // check for cached youtube download
-        if video_cache_path(&yt_cache_dir, youtube_id).is_file() {
-            dostuff(song, &yt_cache_dir, &path, &music.root_dir_path)?;
-            continue;
+        if !video_cache_path(&yt_cache_dir, youtube_id).is_file() {
+            videos.push(youtube_id);
         }
-
-        videos.push((song, path));
+        songs.push((song, path));
     }
 
-    if videos.is_empty() {
+    if !videos.is_empty() {
+        crate::youtube::probe()?;
+        println!("Downloading {} YouTube videos", videos.len());
+        // btw this might break for case-insensitive filesystems
+        crate::youtube::download(&yt_cache_dir, &videos).context("Could not download videos from youtube")?;
+    }
+
+    if songs.is_empty() {
         return Ok(());
     }
 
-    crate::youtube::probe()?;
-
-    println!("Downloading {} YouTube videos", videos.len());
-    // btw this might break for case-insensitive filesystems
-    crate::youtube::download(&yt_cache_dir, videos.iter().map(|x| useless(x.0)))
-        .context("Could not download videos from youtube")?;
-
-    for (song, target_path) in videos {
-        dostuff(song, &yt_cache_dir, &target_path, &music.root_dir_path)?;
-    }
+    songs
+        .into_par_iter()
+        .try_for_each(|(song, target_path)| dostuff(song, &yt_cache_dir, &target_path, &music.root_dir_path))?;
 
     Ok(())
 }
@@ -88,6 +88,7 @@ fn dostuff(song: &SongDecl, source_dir: &Path, target_path: &Path, root_dir: &Pa
     let mut tempfile = tempfile::tempfile_in(dir).context("Could not create tempfile")?;
 
     let source_path = video_cache_path(source_dir, id);
+    // TODO: this is slow and garbage
     crate::normalize_audio::process_file(source_path, &mut tempfile, song.trim.start, song.trim.end)
         .context("Could not trim and normalize audio")?;
 
