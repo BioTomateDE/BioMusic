@@ -23,10 +23,6 @@ struct Args {
     #[arg(long, short)]
     dir: Option<PathBuf>,
 
-    /// Skips validation on references
-    #[arg(long)]
-    no_validate: bool,
-
     #[command(subcommand)]
     command: Command,
 }
@@ -35,6 +31,9 @@ struct Args {
 enum Command {
     /// Format the TOML files
     Format,
+
+    /// Validates references in the TOML
+    Validate,
 
     /// Download missing audio files
     Download,
@@ -124,23 +123,19 @@ fn those_who_snow(args: Args) -> anyhow::Result<()> {
 
     let mut music = BioMusic::read_dir(root)?;
 
-    let validate = !args.no_validate;
-
     match args.command {
         Command::Format => {
             music.write_dir().context("could not format toml files")?;
             println!("Formatted!");
-            if validate {
-                validate::validate(&music)?;
-            }
+        }
+        Command::Validate => {
+            validate::validate(&music)?;
+            println!("Everything is valid! Good puppy.");
         }
         Command::Add(subargs) => {
             add::add_resource(subargs, &mut music)?;
         }
         Command::Download => {
-            if validate {
-                validate::validate(&music)?;
-            }
             download::download_missing(&music)?;
             println!("Downloads complete!");
         }
@@ -148,9 +143,6 @@ fn those_who_snow(args: Args) -> anyhow::Result<()> {
             let dir = cachedir()?;
             std::fs::remove_dir_all(dir).context("failed to remove cache dir")?;
             println!("Cache cleared!");
-            if validate {
-                validate::validate(&music)?;
-            }
         }
     }
 
