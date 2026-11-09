@@ -115,6 +115,10 @@ impl Audio {
         self.samples.len() / self.channels.max(1)
     }
 
+    pub fn duration(&self) -> Duration {
+        Duration::from_secs_f64(self.frames() as f64 / self.sample_rate as f64)
+    }
+
     /// Keep only `start..end` (`end = None` keeps everything until the end).
     /// Out-of-range values are clamped. Cuts always fall on frame boundaries,
     /// so channels never get shifted.
@@ -201,9 +205,11 @@ pub fn process_file(
     output: impl id3::StorageFile,
     start: Option<Duration>,
     end: Option<Duration>,
-) -> Result<()> {
+) -> Result<Duration> {
     let mut audio = Audio::open(input)?;
     audio.trim(start, end); // trim first so removed audio doesn't affect the peak
+    let dur = audio.duration();
     audio.normalize_peak(-1.0);
-    audio.write_mp3(output, Bitrate::Kbps192)
+    audio.write_mp3(output, Bitrate::Kbps192)?;
+    Ok(dur)
 }

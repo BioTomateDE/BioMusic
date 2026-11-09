@@ -74,24 +74,24 @@ fn dostuff(song: &SongDecl, source_dir: &Path, target_path: &Path, root_dir: &Pa
     let image_path: PathBuf = source_dir.join(id.as_str()).with_extension("png");
     let image_data: Vec<u8> = std::fs::read(image_path).context("Could not read thumbnail image")?;
 
+    let dir = target_path.parent().unwrap();
+    let mut tempfile = tempfile::tempfile_in(dir).context("Could not create tempfile")?;
+
+    let source_path = video_cache_path(source_dir, id);
+    // TODO: this is slow and garbage
+    let duration = crate::normalize_audio::process_file(source_path, &mut tempfile, song.trim.start, song.trim.end)
+        .context("Could not trim and normalize audio")?;
+
     let mut tag = id3::Tag::new();
     tag.set_title(&song.title);
     tag.set_artist(&artist.name);
+    tag.set_duration(duration.as_secs() as u32);
     _ = tag.add_frame(id3::frame::Picture {
         mime_type: "image/png".to_owned(),
         picture_type: id3::frame::PictureType::CoverFront,
         description: String::new(),
         data: image_data,
     });
-
-    let dir = target_path.parent().unwrap();
-    let mut tempfile = tempfile::tempfile_in(dir).context("Could not create tempfile")?;
-
-    let source_path = video_cache_path(source_dir, id);
-    // TODO: this is slow and garbage
-    crate::normalize_audio::process_file(source_path, &mut tempfile, song.trim.start, song.trim.end)
-        .context("Could not trim and normalize audio")?;
-
     tag.write_to_file(&mut tempfile, id3::Version::Id3v24)
         .context("Could not write id3 data")?;
 
