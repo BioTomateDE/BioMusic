@@ -15,7 +15,7 @@ pub fn probe() -> anyhow::Result<()> {
 }
 
 pub fn download(dir: &Path, videos: impl Iterator<Item = YoutubeID>) -> anyhow::Result<()> {
-    debug_assert!(dir.is_dir());
+    anyhow::ensure!(dir.is_dir(), "internal error: download dir doesn't exist");
     let home_dir = std::env::home_dir().context("Could not get home dir")?;
 
     let mut cmd = Command::new("yt-dlp");
