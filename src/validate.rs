@@ -1,4 +1,5 @@
-use crate::{BioMusic, decl::song::SongDecl};
+use crate::BioMusic;
+use crate::decl::song::SongDecl;
 use anyhow::Context;
 use std::path::Path;
 

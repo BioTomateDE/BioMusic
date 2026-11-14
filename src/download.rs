@@ -1,18 +1,18 @@
-use crate::{
-    BioMusic, cachedir,
-    decl::song::{SongDecl, SongSource},
-    io::ensure_dir,
-    songdir,
-    youtube::id::YoutubeID,
-};
+use crate::BioMusic;
+use crate::cachedir;
+use crate::decl::song::SongDecl;
+use crate::decl::song::SongSource;
+use crate::io::ensure_dir;
+use crate::songdir;
+use crate::youtube::id::YoutubeID;
 use anyhow::Context;
 use id3::TagLike;
-use rayon::iter::{IntoParallelIterator, ParallelIterator};
-use std::{
-    fs::File,
-    io::Seek,
-    path::{Path, PathBuf},
-};
+use rayon::iter::IntoParallelIterator;
+use rayon::iter::ParallelIterator;
+use std::fs::File;
+use std::io::Seek;
+use std::path::Path;
+use std::path::PathBuf;
 
 pub fn download_missing(music: &BioMusic) -> anyhow::Result<()> {
     let songs_dir = songdir()?;

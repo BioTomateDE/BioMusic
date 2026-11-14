@@ -1,6 +1,9 @@
-use std::{fmt, str::FromStr};
+use std::fmt;
+use std::str::FromStr;
 
-use serde::{Deserialize, Serialize, Serializer};
+use serde::Deserialize;
+use serde::Serialize;
+use serde::Serializer;
 
 const LENGTH: usize = 11;
 

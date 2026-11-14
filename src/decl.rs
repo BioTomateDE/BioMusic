@@ -1,20 +1,21 @@
 use crate::ident::Ident;
 use anyhow::Context;
-use serde::{Deserialize, Serialize, de::DeserializeOwned};
-use std::{
-    any::type_name,
-    borrow::Cow,
-    fmt::Debug,
-    io::ErrorKind,
-    path::{Path, PathBuf},
-};
+use serde::Deserialize;
+use serde::Serialize;
+use serde::de::DeserializeOwned;
+use std::any::type_name;
+use std::borrow::Cow;
+use std::fmt::Debug;
+use std::io::ErrorKind;
+use std::path::Path;
+use std::path::PathBuf;
 
 pub mod artist;
 pub mod character;
 pub mod game;
 pub mod song;
 
-pub trait ResourceType: DeserializeOwned + Serialize + Clone + Debug + PartialEq + Eq {
+pub trait ResourceType: DeserializeOwned + Serialize + Clone + Debug + PartialEq {
     const DIRECTORY: &str;
 }
 

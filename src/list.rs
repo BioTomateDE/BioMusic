@@ -1,7 +1,11 @@
 //! Warning: slopcoded
-use serde::de::{Deserializer, Visitor};
-use serde::{Deserialize, Serialize, Serializer};
-use std::{fmt, marker::PhantomData};
+use serde::Deserialize;
+use serde::Serialize;
+use serde::Serializer;
+use serde::de::Deserializer;
+use serde::de::Visitor;
+use std::fmt;
+use std::marker::PhantomData;
 
 /// One or multiple values in TOML.
 #[derive(Debug, Clone, PartialEq, Eq)]

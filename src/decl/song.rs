@@ -1,11 +1,10 @@
-use std::time::Duration;
-
-use crate::{
-    decl::{artist::Artist, character::Character, game::Game},
-    list::List,
-    youtube::id::YoutubeID,
-};
-use serde::{Deserialize, Serialize};
+use crate::decl::artist::Artist;
+use crate::decl::character::Character;
+use crate::decl::game::Game;
+use crate::list::List;
+use crate::youtube::id::YoutubeID;
+use serde::Deserialize;
+use serde::Serialize;
 
 // pub type Lang = ::iso::language::Iso639_1;
 pub type Lang = ::iso639_1::Iso639_1;
@@ -15,7 +14,7 @@ impl super::ResourceType for SongDecl {
     const DIRECTORY: &str = "songs";
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
+#[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct SongDecl {
     pub source: SongSource,
@@ -91,24 +90,17 @@ pub enum SongSource {
 }
 
 // TODO: implement. also time for string
-#[derive(Debug, Clone, Default, PartialEq, Eq, Deserialize, Serialize)]
+#[derive(Debug, Clone, Default, PartialEq, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct AudioTrim {
-    #[serde(default, with = "crate::serde_duration", skip_serializing_if = "Option::is_none")]
-    pub start: Option<Duration>,
-
-    #[serde(default, with = "crate::serde_duration", skip_serializing_if = "Option::is_none")]
-    pub end: Option<Duration>,
+    pub start: Option<f64>,
+    pub end: Option<f64>,
 }
 
 impl AudioTrim {
-    pub const NONE: Self = Self::new(None, None);
-
-    pub const fn new(start: Option<Duration>, end: Option<Duration>) -> Self {
-        Self { start, end }
-    }
-    pub fn is_none(&self) -> bool {
-        *self == Self::NONE
+    pub const NONE: Self = Self { start: None, end: None };
+    pub const fn is_none(&self) -> bool {
+        matches!(*self, Self::NONE)
     }
 }
 

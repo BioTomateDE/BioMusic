@@ -5,17 +5,20 @@ mod ident;
 mod io;
 mod list;
 mod normalize_audio;
-mod serde_duration;
 mod validate;
 mod youtube;
 
-use crate::{
-    decl::{artist::ArtistDecl, character::CharacterDecl, game::GameDecl, song::SongDecl},
-    ident::Ident,
-};
+use crate::decl::artist::ArtistDecl;
+use crate::decl::character::CharacterDecl;
+use crate::decl::game::GameDecl;
+use crate::decl::song::SongDecl;
+use crate::ident::Ident;
 use anyhow::Context;
-use clap::{CommandFactory, Parser, Subcommand};
-use std::{collections::BTreeMap, path::PathBuf};
+use clap::CommandFactory;
+use clap::Parser;
+use clap::Subcommand;
+use std::collections::BTreeMap;
+use std::path::PathBuf;
 
 #[derive(Debug, Parser)]
 struct Args {
@@ -59,7 +62,7 @@ enum AddResource {
     Game,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 struct BioMusic {
     root_dir_path: PathBuf,
     games: BTreeMap<Ident, GameDecl>,

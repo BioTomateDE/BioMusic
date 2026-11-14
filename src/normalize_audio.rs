@@ -22,13 +22,22 @@ use std::fs::File;
 use std::path::Path;
 use std::time::Duration;
 
-use anyhow::{Context, Result, anyhow, bail};
-use mp3lame_encoder::{Builder, FlushNoGap, InterleavedPcm, MonoPcm, Quality};
+use anyhow::Context;
+use anyhow::Result;
+use anyhow::anyhow;
+use anyhow::bail;
+use mp3lame_encoder::Builder;
+use mp3lame_encoder::FlushNoGap;
+use mp3lame_encoder::InterleavedPcm;
+use mp3lame_encoder::MonoPcm;
+use mp3lame_encoder::Quality;
 use symphonia::core::codecs::audio::AudioDecoderOptions;
 use symphonia::core::errors::Error as SymphoniaError;
+use symphonia::core::formats::FormatOptions;
+use symphonia::core::formats::TrackType;
 use symphonia::core::formats::probe::Hint;
-use symphonia::core::formats::{FormatOptions, TrackType};
-use symphonia::core::io::{MediaSource, MediaSourceStream};
+use symphonia::core::io::MediaSource;
+use symphonia::core::io::MediaSourceStream;
 use symphonia::core::meta::MetadataOptions;
 
 pub use mp3lame_encoder::Bitrate;
@@ -122,11 +131,11 @@ impl Audio {
     /// Keep only `start..end` (`end = None` keeps everything until the end).
     /// Out-of-range values are clamped. Cuts always fall on frame boundaries,
     /// so channels never get shifted.
-    pub fn trim(&mut self, start: Option<Duration>, end: Option<Duration>) {
+    pub fn trim(&mut self, start: Option<f64>, end: Option<f64>) {
         let frames = self.frames();
-        let to_frame = |d: Duration| ((d.as_secs_f64() * self.sample_rate as f64) as usize).min(frames);
+        let to_frame = |secs: f64| ((secs * self.sample_rate as f64) as usize).min(frames);
 
-        let start_f = to_frame(start.unwrap_or(Duration::ZERO));
+        let start_f = to_frame(start.unwrap_or(0.0));
         let end_f = end.map_or(frames, to_frame).max(start_f);
 
         let ch = self.channels;
@@ -203,8 +212,8 @@ impl Audio {
 pub fn process_file(
     input: impl AsRef<Path>,
     output: impl id3::StorageFile,
-    start: Option<Duration>,
-    end: Option<Duration>,
+    start: Option<f64>,
+    end: Option<f64>,
 ) -> Result<Duration> {
     let mut audio = Audio::open(input)?;
     audio.trim(start, end); // trim first so removed audio doesn't affect the peak

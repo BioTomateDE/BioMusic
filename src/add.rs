@@ -1,20 +1,24 @@
-use crate::{
-    AddArgs, AddResource, BioMusic,
-    decl::{
-        Resource,
-        artist::{Artist, ArtistDecl},
-        character::CharacterDecl,
-        game::GameDecl,
-        song::{SongDecl, SongSource},
-        validate_resource,
-    },
-    ident::{Ident, IdentParseError},
-    io::write_toml_resource,
-    list::List,
-    youtube::{domain::is_youtube_domain, id::YoutubeID},
-};
+use crate::AddArgs;
+use crate::AddResource;
+use crate::BioMusic;
+use crate::decl::Resource;
+use crate::decl::artist::Artist;
+use crate::decl::artist::ArtistDecl;
+use crate::decl::character::CharacterDecl;
+use crate::decl::game::GameDecl;
+use crate::decl::song::SongDecl;
+use crate::decl::song::SongSource;
+use crate::decl::validate_resource;
+use crate::ident::Ident;
+use crate::ident::IdentParseError;
+use crate::io::write_toml_resource;
+use crate::list::List;
+use crate::youtube::domain::is_youtube_domain;
+use crate::youtube::id::YoutubeID;
 use anyhow::Context;
-use std::io::{Write, stdin, stdout};
+use std::io::Write;
+use std::io::stdin;
+use std::io::stdout;
 
 pub fn add_resource(args: AddArgs, music: &mut BioMusic) -> anyhow::Result<()> {
     // only interactive cli for now

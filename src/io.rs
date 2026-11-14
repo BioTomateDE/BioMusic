@@ -1,14 +1,15 @@
-use std::{
-    any::type_name,
-    collections::BTreeMap,
-    ffi::OsStr,
-    path::{Path, PathBuf},
-};
+use std::any::type_name;
+use std::collections::BTreeMap;
+use std::ffi::OsStr;
+use std::path::Path;
+use std::path::PathBuf;
 
 use anyhow::Context;
-use serde::{Serialize, de::DeserializeOwned};
+use serde::Serialize;
+use serde::de::DeserializeOwned;
 
-use crate::{decl::ResourceType, ident::Ident};
+use crate::decl::ResourceType;
+use crate::ident::Ident;
 
 pub fn read_toml_dir<T: ResourceType>(root_dir: &Path) -> anyhow::Result<BTreeMap<Ident, T>> {
     let mut map = BTreeMap::new();

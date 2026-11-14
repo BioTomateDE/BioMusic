@@ -1,4 +1,5 @@
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
+use serde::Serialize;
 
 use crate::list::List;
 
@@ -25,7 +26,7 @@ pub struct Socials {
     /// <https://vocaloidlyrics.miraheze.org>
     ///
     /// Format: `https://vocaloidlyrics.miraheze.org/wiki/{}`
-    pub wiki: String,
+    pub wiki: Option<String>,
 
     /// <https://youtube.com>
     ///
