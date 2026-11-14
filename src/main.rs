@@ -14,7 +14,6 @@ use crate::decl::game::GameDecl;
 use crate::decl::song::SongDecl;
 use crate::ident::Ident;
 use anyhow::Context;
-use clap::CommandFactory;
 use clap::Parser;
 use clap::Subcommand;
 use std::collections::BTreeMap;
@@ -98,9 +97,9 @@ impl BioMusic {
 }
 
 fn report_error(error: &anyhow::Error) -> String {
-    let mut buffer = error.to_string();
+    let mut buffer = format!("\x1B[31m{error}\x1B[0m");
     for e in error.chain().skip(1) {
-        buffer += "\n> ";
+        buffer += "\n\x1B[31m>\x1B[0m ";
         buffer += &e.to_string();
     }
     buffer
@@ -109,9 +108,8 @@ fn report_error(error: &anyhow::Error) -> String {
 fn main() {
     let args = Args::parse();
     if let Err(e) = those_who_snow(args) {
-        Args::command()
-            .error(::clap::error::ErrorKind::ValueValidation, report_error(&e))
-            .exit();
+        eprintln!("\x1B[31;1mError:\x1B[0m {}", report_error(&e));
+        std::process::exit(1);
     }
 }
 

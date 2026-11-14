@@ -10,17 +10,31 @@ use serde::de::DeserializeOwned;
 
 use crate::decl::ResourceType;
 use crate::ident::Ident;
+use crate::report_error;
 
 pub fn read_toml_dir<T: ResourceType>(root_dir: &Path) -> anyhow::Result<BTreeMap<Ident, T>> {
     let mut map = BTreeMap::new();
+    let mut fails: usize = 0;
 
     for path in listdir(root_dir.join(T::DIRECTORY), "toml") {
         let ident: Ident = ident_from_path(&path)?;
-        let toml_struct: T = read_toml_file(&path)?;
+        let toml_struct: T = match read_toml_file(&path) {
+            Ok(t) => t,
+            Err(e) => {
+                eprintln!("{}", report_error(&e));
+                fails += 1;
+                continue;
+            }
+        };
         assert_eq!(map.insert(ident, toml_struct), None);
     }
 
-    Ok(map)
+    let total = map.len();
+    if fails == 0 {
+        Ok(map)
+    } else {
+        anyhow::bail!("Failed to parse {fails}/{total} TOML files");
+    }
 }
 
 pub fn ident_from_path(path: &Path) -> anyhow::Result<Ident> {
