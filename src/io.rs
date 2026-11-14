@@ -1,12 +1,9 @@
-use std::any::type_name;
 use std::collections::BTreeMap;
 use std::ffi::OsStr;
 use std::path::Path;
 use std::path::PathBuf;
 
 use anyhow::Context;
-use serde::Serialize;
-use serde::de::DeserializeOwned;
 
 use crate::decl::ResourceType;
 use crate::ident::Ident;
@@ -47,39 +44,31 @@ pub fn ident_from_path(path: &Path) -> anyhow::Result<Ident> {
         .context("Filename is not a valid identifier")
 }
 
-pub fn read_toml_file<T: DeserializeOwned>(path: &Path) -> anyhow::Result<T> {
-    let ctx = || format!("Could not read {} toml file `{}`", type_name::<T>(), path.display());
+pub fn read_toml_file<T: ResourceType>(path: &Path) -> anyhow::Result<T> {
+    let ctx = || format!("Failed to read TOML {} file `{}`", T::NAME, path.display());
     let file_text: String = std::fs::read_to_string(path)
-        .context("Could not read toml file")
+        .context("Failed to read toml file")
         .with_context(ctx)?;
     let toml_struct: T = ::toml::from_str(&file_text)
-        .context("Could not deserialize toml")
+        .context("Failed to deserialize TOML")
         .with_context(ctx)?;
     Ok(toml_struct)
 }
 
 pub fn write_toml_dir<T: ResourceType>(map: &BTreeMap<Ident, T>, root_dir: &Path) -> anyhow::Result<()> {
     for (ident, toml_struct) in map {
-        write_toml_resource(toml_struct, ident, root_dir)?;
+        write_toml_file(toml_struct, ident, root_dir)?;
     }
     Ok(())
 }
 
-pub fn write_toml_resource<T: ResourceType>(toml_struct: &T, ident: &Ident, root_dir: &Path) -> anyhow::Result<()> {
-    write_toml_file(toml_struct, ident, &root_dir.join(T::DIRECTORY))
-}
-
-pub fn write_toml_file<T: Serialize>(toml_struct: &T, ident: &Ident, dir_path: &Path) -> anyhow::Result<()> {
-    let path = dir_path.join(ident.string()).with_extension("toml");
-    eprintln!(
-        "\x1B[2m(Writing {} toml file `{}`)\x1B[0m",
-        type_name::<T>(),
-        path.display()
-    );
-    // TODO: dotted
-    let toml_text = ::toml::to_string(toml_struct).context("failed to serialize toml")?;
+pub fn write_toml_file<T: ResourceType>(toml_struct: &T, ident: &Ident, root_dir: &Path) -> anyhow::Result<()> {
+    let path = root_dir.join(T::DIRECTORY).join(ident.string()).with_extension("toml");
+    eprintln!("\x1B[2m(Writing TOML {} file `{}`)\x1B[0m", T::NAME, path.display());
+    // TODO: write tables dotted
+    let toml_text = ::toml::to_string(toml_struct).context("Failed to serialize TOML")?;
     std::fs::write(&path, toml_text)
-        .with_context(|| format!("failed to write {} toml file `{}`", type_name::<T>(), path.display()))
+        .with_context(|| format!("Failed to write TOML {} file `{}`", T::NAME, path.display()))
 }
 
 pub fn listdir(dir_path: impl AsRef<Path>, extension: impl AsRef<OsStr>) -> Vec<PathBuf> {
@@ -108,6 +97,6 @@ pub fn ensure_dir(dir_path: impl AsRef<Path>) -> anyhow::Result<()> {
     match std::fs::create_dir(dir_path) {
         Ok(()) => Ok(()),
         Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => Ok(()),
-        Err(e) => Err(e).context(format!("could not create directory `{}`", dir_path.display())),
+        Err(e) => Err(e).context(format!("Failed to create directory `{}`", dir_path.display())),
     }
 }

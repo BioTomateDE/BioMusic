@@ -12,6 +12,7 @@ pub type Lang = ::iso639_1::Iso639_1;
 pub type Song = super::Resource<SongDecl>;
 impl super::ResourceType for SongDecl {
     const DIRECTORY: &str = "songs";
+    const NAME: &str = "song declaration";
 }
 
 #[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]

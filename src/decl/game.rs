@@ -4,6 +4,7 @@ use serde::Serialize;
 pub type Game = super::Resource<GameDecl>;
 impl super::ResourceType for GameDecl {
     const DIRECTORY: &str = "games";
+    const NAME: &str = "game declaration";
 }
 
 // TODO

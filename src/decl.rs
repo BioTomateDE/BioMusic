@@ -3,7 +3,6 @@ use anyhow::Context;
 use serde::Deserialize;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
-use std::any::type_name;
 use std::borrow::Cow;
 use std::fmt::Debug;
 use std::io::ErrorKind;
@@ -17,6 +16,7 @@ pub mod song;
 
 pub trait ResourceType: DeserializeOwned + Serialize + Clone + Debug + PartialEq {
     const DIRECTORY: &str;
+    const NAME: &str;
 }
 
 /// A reference to a resource `T` using an identifier, or an inline declaration of `T`.
@@ -51,12 +51,12 @@ pub fn validate_resource<T: ResourceType>(ident: &Ident, root_dir: &Path) -> any
     let path = get_path::<T>(ident, root_dir);
     let Err(e) = path.metadata() else { return Ok(()) };
     if e.kind() == ErrorKind::NotFound && path.parent().unwrap().exists() {
-        anyhow::bail!("Dangling {} resource reference `{ident}`", type_name::<T>());
+        anyhow::bail!("Dangling {} reference `{ident}`", T::NAME);
     }
     // some weird error; actually print it
     Err(anyhow::Error::new(e).context(format!(
-        "Could not resolve {} resource reference at `{}`",
-        type_name::<T>(),
+        "Could not resolve {} reference at `{}`",
+        T::NAME,
         path.display(),
     )))
 }

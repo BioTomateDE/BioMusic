@@ -11,7 +11,7 @@ use crate::decl::song::SongSource;
 use crate::decl::validate_resource;
 use crate::ident::Ident;
 use crate::ident::IdentParseError;
-use crate::io::write_toml_resource;
+use crate::io::write_toml_file;
 use crate::list::List;
 use crate::youtube::domain::is_youtube_domain;
 use crate::youtube::id::YoutubeID;
@@ -43,7 +43,7 @@ fn add_game(music: &mut BioMusic) -> anyhow::Result<()> {
     let game = GameDecl { name };
 
     // sync to disk
-    write_toml_resource(&game, &ident, &music.root_dir_path).context("Could not save created game")?;
+    write_toml_file(&game, &ident, &music.root_dir_path).context("Could not save created game")?;
 
     // sync to struct cuz yeah
     _ = music.games.insert(ident, game);
@@ -64,7 +64,7 @@ fn add_char(music: &mut BioMusic) -> anyhow::Result<()> {
     let character = CharacterDecl { name, aka: List::EMPTY };
 
     // sync to disk
-    write_toml_resource(&character, &ident, &music.root_dir_path).context("Could not save created character")?;
+    write_toml_file(&character, &ident, &music.root_dir_path).context("Could not save created character")?;
 
     // sync to struct cuz yeah
     _ = music.characters.insert(ident, character);
@@ -88,7 +88,7 @@ fn add_artist(music: &mut BioMusic) -> anyhow::Result<()> {
     };
 
     // sync to disk
-    write_toml_resource(&artist, &ident, &music.root_dir_path).context("Could not save created artist")?;
+    write_toml_file(&artist, &ident, &music.root_dir_path).context("Could not save created artist")?;
 
     // alrighty now do #stuff
     for (song_ident, song) in &mut music.songs {
@@ -98,7 +98,7 @@ fn add_artist(music: &mut BioMusic) -> anyhow::Result<()> {
         }
         if sync {
             println!("Replaced inline decleration artist with reference in song {song_ident}");
-            write_toml_resource(song, song_ident, &music.root_dir_path).context("Could not update song")?;
+            write_toml_file(song, song_ident, &music.root_dir_path).context("Could not update song")?;
         }
     }
 
@@ -163,7 +163,7 @@ fn add_song(music: &mut BioMusic) -> anyhow::Result<()> {
     let song = SongDecl::new(source, title, artist);
 
     // sync to disk
-    write_toml_resource(&song, &ident, &music.root_dir_path).context("Could not save created song")?;
+    write_toml_file(&song, &ident, &music.root_dir_path).context("Could not save created song")?;
 
     // sync to struct cuz yeah
     _ = music.songs.insert(ident, song);

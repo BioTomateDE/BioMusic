@@ -6,6 +6,7 @@ use crate::list::List;
 pub type Artist = super::Resource<ArtistDecl>;
 impl super::ResourceType for ArtistDecl {
     const DIRECTORY: &str = "artists";
+    const NAME: &str = "artist declaration";
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Default, Deserialize, Serialize)]

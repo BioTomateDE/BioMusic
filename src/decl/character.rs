@@ -6,7 +6,9 @@ use crate::list::List;
 pub type Character = super::Resource<CharacterDecl>;
 impl super::ResourceType for CharacterDecl {
     const DIRECTORY: &str = "chars";
+    const NAME: &str = "character declaration";
 }
+// TODO: rename to vocaloid
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
